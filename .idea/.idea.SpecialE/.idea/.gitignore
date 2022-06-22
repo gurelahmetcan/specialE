@@ -1,0 +1,14 @@
+﻿Library/
+Temp/
+*.csproj
+.vs/
+*.sln
+obj/
+Logs/
+bin-win/
+bin-android/
+UserSettings/
+
+.vsconfig
+.idea/
+*.user
