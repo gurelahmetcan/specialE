@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -11,10 +12,10 @@ namespace ByteTyper
     {
         #region Fields
 
+        [SerializeField] private GetText GetText;
+
         [SerializeField] private float typingSpeed = 0.05f;
-
-        [SerializeField] private bool isFirstSpeaking;
-
+        
         [SerializeField] private TextMeshProUGUI egeDialogueText;
         [SerializeField] private TextMeshProUGUI gizemDialogueText;
         
@@ -29,16 +30,20 @@ namespace ByteTyper
         [SerializeField] private String[] egeDialogueSentences;
         [TextArea]
         [SerializeField] private String[] gizemDialogueSentences;
-
-        private int egeIndex;
-        private int gizemIndex ;
-
-        private bool m_IsFirstPress;
-
-        private float m_AnimationDelay = 0.6f;
-
-        private bool m_EgeTurn;
         
+        private bool m_IsFirstPress;
+        private float m_AnimationDelay = 0.6f;
+        
+        private Dictionary<int, List<string>> mDictionary = new Dictionary<int, List<string>>();
+        
+        private int m_index = 0;
+
+        private bool m_isAlreadyOpen;
+
+        private bool m_isEgeTurn;
+
+        private bool m_isAgain;
+
         #endregion
 
         #region Properties
@@ -54,7 +59,8 @@ namespace ByteTyper
 
         void Start()
         {
-            m_EgeTurn = isFirstSpeaking;
+            mDictionary = GetText.ReadData();
+
             m_IsFirstPress = true;
         }
 
@@ -71,9 +77,9 @@ namespace ByteTyper
 
         #region Private Methods
         
-        private IEnumerator TypeSentence(TMP_Text text, String[] sentence, int index)
+        private IEnumerator TypeSentence(TMP_Text text, string sentence)
         {
-            foreach (char letter in sentence[index])
+            foreach (char letter in sentence)
             {
                 text.text += letter;
                 yield return new WaitForSeconds(typingSpeed);
@@ -82,81 +88,74 @@ namespace ByteTyper
         
         private IEnumerator OnContinuePressed()
         {
-            if (m_EgeTurn)
+            var line = mDictionary[m_index];
+
+            if (!m_IsFirstPress)
             {
-                if (egeIndex >= egeDialogueSentences.Length - 1)
+                if (m_isEgeTurn)
                 {
-                    gizemDialogueText.text = string.Empty;
-                    
-                    gizemBubbleAnimator.SetTrigger("Close");
+                    m_isAgain = line[0] == "Ege:";
                 }
                 else
                 {
-                    gizemDialogueText.text = string.Empty;
-
-                    if (!m_IsFirstPress)
-                    {
-                        gizemBubbleAnimator.SetTrigger("Close");
-                    }
-
-                    yield return new WaitForSeconds(m_AnimationDelay);
-
-                    egeDialogueText.text = string.Empty;
-                
-                    playEgeAnimator.SetTrigger("Talk");
-                
-                    egeBubbleAnimator.SetTrigger("Open");
-                
-                    yield return new WaitForSeconds(m_AnimationDelay);
-                
-                    if (egeIndex < egeDialogueSentences.Length)
-                    {
-                        egeDialogueText.text = string.Empty;
-                        StartCoroutine(TypeSentence(egeDialogueText, egeDialogueSentences, egeIndex));
-                        egeIndex++;
-                        m_EgeTurn = false;
-                    }
+                    m_isAgain = line[0] == "Gizem:";
                 }
+            }
+            
+            if (line[0] == "Ege:")
+            {
+                m_isEgeTurn = true;
+                gizemDialogueText.text = string.Empty;
 
+                if (!m_IsFirstPress && !m_isAgain)
+                {
+                    gizemBubbleAnimator.SetTrigger("Close");
+                }
+                
+                yield return new WaitForSeconds(m_AnimationDelay);
+
+                egeDialogueText.text = string.Empty;
+                
+                playEgeAnimator.SetTrigger("Talk");
+
+                if (!m_isAgain)
+                {
+                    egeBubbleAnimator.SetTrigger("Open");
+                    yield return new WaitForSeconds(m_AnimationDelay);
+                }
+                
+                egeDialogueText.text = string.Empty;
+                StartCoroutine(TypeSentence(egeDialogueText, line[1]));
             }
             else
             {
-                if (gizemIndex >= gizemDialogueSentences.Length - 1)
+                m_isEgeTurn = false;
+                egeDialogueText.text = string.Empty;
+                
+                if (!m_IsFirstPress && !m_isAgain)
                 {
-                    egeDialogueText.text = string.Empty;
-                    
                     egeBubbleAnimator.SetTrigger("Close");
                 }
-                else
+                
+                yield return new WaitForSeconds(m_AnimationDelay);
+
+                gizemDialogueText.text = string.Empty;
+                
+                playGizemAnimator.SetTrigger("Talk");
+
+                if (!m_isAgain)
                 {
-                    egeDialogueText.text = string.Empty;
-                
-                    if (!m_IsFirstPress)
-                    {
-                        egeBubbleAnimator.SetTrigger("Close");
-                    }
-                
-                    yield return new WaitForSeconds(m_AnimationDelay);
-
-                    gizemDialogueText.text = string.Empty;
-                
-                    playGizemAnimator.SetTrigger("Talk");
-
                     gizemBubbleAnimator.SetTrigger("Open");
                 
                     yield return new WaitForSeconds(m_AnimationDelay);
-                
-                    if (gizemIndex < gizemDialogueSentences.Length)
-                    {
-                        gizemDialogueText.text = string.Empty;
-                        StartCoroutine(TypeSentence(gizemDialogueText, gizemDialogueSentences, gizemIndex));
-                        gizemIndex++;
-                        m_EgeTurn = true;
-                    }
                 }
+                
+                gizemDialogueText.text = string.Empty;
+                StartCoroutine(TypeSentence(gizemDialogueText, line[1]));
             }
 
             m_IsFirstPress = false;
+            m_index++;
         }
 
         #endregion
