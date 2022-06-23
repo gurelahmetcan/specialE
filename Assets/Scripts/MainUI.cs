@@ -1,10 +1,4 @@
-﻿using System.Collections.Generic;
-using DG.Tweening;
-using OpenCover.Framework.Model;
-using TMPro;
-using UnityEngine;
-using System.Linq;
-using File = System.IO.File;
+﻿using UnityEngine;
 
 namespace ByteTyper
 {
